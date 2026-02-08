@@ -40,6 +40,13 @@ export const useTodosStore = defineStore('counter', () => {
     todos.value.splice(index, 1)
   }
 
+  const activeTodos = computed(() => {
+    return todos.value.filter((i) => !i.completed)
+  })
 
-  return { todos, add, update, remove }
+  const completedTodos = computed(() => {
+    return todos.value.filter((i) => i.completed)
+  })
+
+  return { todos, add, update, remove, activeTodos, completedTodos }
 })
