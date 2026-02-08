@@ -11,7 +11,7 @@ interface IToDo {
 type CreateToDo = Pick<IToDo, 'name' | 'description'> 
 type UpdateToDo = Partial<Pick<IToDo, 'name' | 'description' | 'completed'>>
 
-export const useTodosStore = defineStore('counter', () => {
+export const useTodosStore = defineStore('todos', () => {
   const todos = ref<IToDo[]>([])
   const nextId = ref(1)
 
