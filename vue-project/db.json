@@ -1,0 +1,7 @@
+{
+  "tasks": [
+    { "id": 1, "name": "name1", "description": "description1", "completed": false },
+    { "id": 2, "name": "name2", "description": "description2", "completed": true },
+    { "id": 3, "name": "name3", "description": "description3", "completed": false }
+  ]
+}
