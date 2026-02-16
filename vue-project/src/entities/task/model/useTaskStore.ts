@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { taskApi, type Task, CreateTaskDto, UpdateTaskDto } from '@/entities/task/api/taskApi'
+import { taskApi, type Task, type CreateTaskDto, type UpdateTaskDto } from '@/entities/task/api/taskApi'
 
 export type Filter = 'all' | 'active' | 'completed'
 
@@ -7,8 +7,10 @@ export const useTaskStore = defineStore('tasks', {
   state: () => ({
     items: [] as Task[],
     filter: 'all' as Filter,
-    isLoading: false,
-    error: null as string | null
+    isFetching: false,
+    error: null as string | null,
+    isCreating: false,
+    pendingById: {} as Record<number, boolean>
   }),
 
   getters: {
@@ -20,40 +22,85 @@ export const useTaskStore = defineStore('tasks', {
   },
 
   actions: {
+    isPending(id: number) {
+      return !!this.pendingById[id]
+    },
+    startPending(id: number) {
+      this.pendingById[id] = true
+    },
+    stopPending(id: number) {
+      delete this.pendingById[id]
+    },
     async fetchAll() {
-      this.isLoading = true
+      this.isFetching = true
       this.error = null
       try {
         this.items = await taskApi.list()
       } catch (e) {
         this.error = e instanceof Error ? e.message : 'Unknown error'
       } finally {
-        this.isLoading = false
+        this.isFetching = false
       }
     },
 
-    async add(data: CreateTaskDto) {
-      const created = await taskApi.create(data)
-      this.items.unshift(created)
+    async add(dto: CreateTaskDto) {
+      if (this.isCreating) return
+      this.isCreating = true
+      this.error = null
+      try {
+        const created = await taskApi.create(dto)
+        this.items.unshift(created)
+      } catch (e) {
+        this.error = e instanceof Error ? e.message : 'Unknown error'
+      } finally {
+        this.isCreating = false
+      }
     },
 
     async toggle(id: number) {
+      if (this.isPending(id)) return
       const task = this.items.find((t: Task) => t.id === id)
       if (!task) return
-      const updated = await taskApi.update(id, { completed: !task.completed })
-      Object.assign(task, updated)
+      this.startPending(id)
+      this.error = null
+      try {
+        const updated = await taskApi.update(id, { completed: !task.completed })
+        Object.assign(task, updated)
+      } catch (e) {
+        this.error = e instanceof Error ? e.message : 'Unknown error'
+      } finally {
+        this.stopPending(id)
+      }
     },
 
-    async update(id: number, data: UpdateTaskDto) {
+    async update(id: number, dto: UpdateTaskDto) {
+      if (this.isPending(id)) return
       const task = this.items.find((t: Task) => t.id === id)
       if (!task) return
-      const updated = await taskApi.update(id, data)
-      Object.assign(task, updated)
+      this.startPending(id)
+      this.error = null
+      try {
+        const updated = await taskApi.update(id, dto)
+        Object.assign(task, updated)
+      } catch (e){
+        this.error = e instanceof Error ? e.message : 'Unknown error'
+      } finally {
+        this.stopPending(id)
+      }
     },
 
     async remove(id: number) {
-      await taskApi.remove(id)
-      this.items = this.items.filter((t: Task) => t.id !== id)
+      if (this.isPending(id)) return
+      this.startPending(id)
+      this.error = null
+      try {
+        await taskApi.remove(id)
+        this.items = this.items.filter((t: Task) => t.id !== id)
+      } catch (e) {
+        this.error = e instanceof Error ? e.message : 'Unknown error'
+      } finally {
+        this.stopPending(id)
+      }
     }
   }
 })

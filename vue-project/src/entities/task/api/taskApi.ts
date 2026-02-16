@@ -7,8 +7,15 @@ export type Task = {
   completed: boolean
 }
 
-export type CreateTaskDto = Pick<Task, 'name' | 'description'>
-export type UpdateTaskDto = Partial<Pick<Task, 'name' | 'description' | 'completed'>>
+export type CreateTaskDto = {
+  name: string
+  description: string
+}
+export type UpdateTaskDto = {
+  name?: string
+  description?: string
+  completed?: boolean
+}
 
 const BASE = '/api/tasks'
 
