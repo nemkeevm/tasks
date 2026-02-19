@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { taskApi, type Task, type CreateTaskDto, type UpdateTaskDto } from '@/entities/task/api/taskApi'
+import { t } from 'vue-router/dist/index-Cu9B0wDz.mjs'
 
 export type Filter = 'all' | 'active' | 'completed'
 
@@ -10,7 +11,8 @@ export const useTaskStore = defineStore('tasks', {
     isFetching: false,
     error: null as string | null,
     isCreating: false,
-    pendingById: {} as Record<number, boolean>
+    pendingById: {} as Record<number, boolean>,
+    deletingById: {} as Record<number, boolean>
   }),
 
   getters: {
@@ -22,6 +24,18 @@ export const useTaskStore = defineStore('tasks', {
   },
 
   actions: {
+    isDeleting(id: number) {
+      return !!this.deletingById[id]
+    },
+    startDeleting(id: number) {
+      this.deletingById[id] = true
+    },
+    stopDeleting(id: number) {
+      delete this.deletingById[id]
+    },
+    setFilter(filter: Filter) {
+      this.filter = filter
+    },
     isPending(id: number) {
       return !!this.pendingById[id]
     },
@@ -59,14 +73,19 @@ export const useTaskStore = defineStore('tasks', {
 
     async toggle(id: number) {
       if (this.isPending(id)) return
-      const task = this.items.find((t: Task) => t.id === id)
+      const task = this.items.find(t => t.id === id)
       if (!task) return
+
+      const prev = task.completed
+      task.completed = !prev 
+
       this.startPending(id)
       this.error = null
       try {
-        const updated = await taskApi.update(id, { completed: !task.completed })
+        const updated = await taskApi.update(id, { completed: task.completed })
         Object.assign(task, updated)
       } catch (e) {
+        task.completed = prev
         this.error = e instanceof Error ? e.message : 'Unknown error'
       } finally {
         this.stopPending(id)
@@ -90,8 +109,11 @@ export const useTaskStore = defineStore('tasks', {
     },
 
     async remove(id: number) {
-      if (this.isPending(id)) return
+      if (this.isPending(id) || this.isDeleting(id)) return
+      const task = this.items.find((t: Task) => t.id === id)
+      if (!task) return
       this.startPending(id)
+      this.startDeleting(id)
       this.error = null
       try {
         await taskApi.remove(id)
@@ -100,6 +122,7 @@ export const useTaskStore = defineStore('tasks', {
         this.error = e instanceof Error ? e.message : 'Unknown error'
       } finally {
         this.stopPending(id)
+        this.stopDeleting(id)
       }
     }
   }

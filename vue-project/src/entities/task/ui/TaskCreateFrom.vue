@@ -29,6 +29,8 @@ const emit = defineEmits<{
 const createTask = () => {
   if (!hasValue.value) return
   emit('create', { name: name.value, description: description.value })
+  name.value = ''
+  description.value = ''  
 }
 
 const name = ref('')

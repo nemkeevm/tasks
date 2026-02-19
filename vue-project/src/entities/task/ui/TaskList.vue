@@ -1,4 +1,8 @@
 <template>
+  <TaskFilter 
+    :currentFilter="currentFilter"
+    @changeFilter="emit('changeFilter', $event)" 
+  />
   <p v-if="isFetching">Loading...</p>
     <div v-else-if="error">
       <p>Error: {{ error }}</p>
@@ -14,7 +18,8 @@
         v-for="task in tasks"
         :key="task.id"
         :task="task"
-        :isPending="isPending"
+        :isPending="isPending(task.id)"
+        :deleting="isDeleting(task.id)"
         @toggle="emit('toggle', $event)"
         @remove="emit('remove', $event)"
       />
@@ -26,12 +31,16 @@
 import { type Task, type CreateTaskDto } from '@/entities/task/api/taskApi'
 import TaskItem from './TaskItem.vue';
 import TaskCreateFrom from './TaskCreateFrom.vue';
+import TaskFilter from './TaskFilter.vue';
+import { type Filter } from '@/entities/task/model/useTaskStore'
 defineProps<{
   tasks: Task[]
   isFetching: boolean
   error: string | null
   isCreating: boolean
   isPending: (id: number) => boolean
+  currentFilter: Filter
+  isDeleting: (id: number) => boolean
 }>()
 
 const emit = defineEmits<{
@@ -39,5 +48,6 @@ const emit = defineEmits<{
   (e: 'toggle', id: number): void
   (e: 'remove', id: number): void
   (e: 'add', dto: CreateTaskDto): void
+  (e: 'changeFilter', filter: Filter): void
 }>()
 </script>
